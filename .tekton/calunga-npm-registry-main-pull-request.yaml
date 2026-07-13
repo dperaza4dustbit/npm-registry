@@ -31,11 +31,9 @@ spec:
     - name: git-clone-depth
       value: "0"
     - name: builder-image
-      value: quay.io/redhat-user-workloads/calunga-tenant/npm-builder@sha256:d2e3123ba0bdc9717043d4bc0d3127849b14423c665f6b399d4181f502785a58
-    - name: builder-image-digest
-      value: sha256:d2e3123ba0bdc9717043d4bc0d3127849b14423c665f6b399d4181f502785a58
+      value: quay.io/redhat-user-workloads/calunga-tenant/npm-builder@sha256:7e067c1f6a0bf8a7d9b3f07e6e6b517ce49932362ca1b433a8e505ab22be680a
     - name: task-build-npm-package-bundle
-      value: quay.io/redhat-user-workloads/calunga-tenant/task-build-npm-package@sha256:b32ca423a67f362f236bb4823bb2e2fe58561158b63a119c90d74957412c4380
+      value: quay.io/redhat-user-workloads/calunga-tenant/task-build-npm-package@sha256:07eb8f459845a630325fe8620f565ac31072d06de844ce8819cf033c4c872bf1
   taskRunTemplate:
     serviceAccountName: build-pipeline-calunga-npm-registry-main
   workspaces:

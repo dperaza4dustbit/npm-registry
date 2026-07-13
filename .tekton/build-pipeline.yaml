@@ -25,9 +25,7 @@ spec:
       type: string
       default: "0"
     - name: builder-image
-      type: string
-    - name: builder-image-digest
-      description: Digest pin enforced by lint-manifest (sha256:...)
+      description: Pinned npm-builder image (lint scripts + BUILDER_IMAGE via SCRIPT_RUNNER_IMAGE_REFERENCE)
       type: string
     - name: task-build-npm-package-bundle
       description: Tekton bundle image for build-npm-package-oci-ta
@@ -51,9 +49,9 @@ spec:
       default: "false"
   results:
     - name: IMAGE_URL
-      value: $(tasks.export-image-results.results.IMAGE_URL)
+      value: $(tasks.build-npm-package.results.IMAGE_URL)
     - name: IMAGE_DIGEST
-      value: $(tasks.export-image-results.results.IMAGE_DIGEST)
+      value: $(tasks.build-npm-package.results.IMAGE_DIGEST)
     - name: CHAINS-GIT_URL
       value: $(tasks.clone-repository.results.url)
     - name: CHAINS-GIT_COMMIT
@@ -108,7 +106,6 @@ spec:
           value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
         - name: SCRIPT
           value: |
-            export BUILDER_IMAGE_DIGEST='$(params.builder-image-digest)'
             ./hack/lint-manifest.sh '$(params.prev-packages-ref)'
         - name: SCRIPT_RUNNER_IMAGE
           value: $(params.builder-image)
@@ -181,90 +178,6 @@ spec:
             value: $(params.task-build-npm-package-bundle)
           - name: kind
             value: task
-      when:
-        - input: "$(tasks.identify-packages.results.SCRIPT_OUTPUT)"
-          operator: in
-          values: ["has-packages"]
-    - name: export-image-results
-      runAfter:
-        - identify-packages
-        - build-npm-package
-      params:
-        - name: output-image
-          value: $(params.output-image)
-        - name: package-status
-          value: $(tasks.identify-packages.results.SCRIPT_OUTPUT)
-        - name: image-expires-after
-          value: $(params.image-expires-after)
-      taskSpec:
-        params:
-          - name: output-image
-            type: string
-          - name: package-status
-            type: string
-          - name: image-expires-after
-            type: string
-            default: ""
-        results:
-          - name: IMAGE_URL
-            type: string
-          - name: IMAGE_DIGEST
-            type: string
-        volumes:
-          - name: trusted-ca
-            configMap:
-              name: trusted-ca
-              items:
-                - key: ca-bundle.crt
-                  path: ca-bundle.crt
-              optional: true
-        steps:
-          - name: export
-            image: quay.io/konflux-ci/oras:latest@sha256:1beeecce012c99794568f74265c065839f9703d28306a8430b667f639343a98b
-            volumeMounts:
-              - name: trusted-ca
-                mountPath: /etc/pki/tls/certs/ca-custom-bundle.crt
-                subPath: ca-bundle.crt
-                readOnly: true
-            env:
-              - name: OUTPUT_IMAGE
-                value: $(params.output-image)
-              - name: PACKAGE_STATUS
-                value: $(params.package-status)
-              - name: IMAGE_EXPIRES_AFTER
-                value: $(params.image-expires-after)
-            script: |
-              #!/bin/bash
-              set -euo pipefail
-
-              IMAGE="${OUTPUT_IMAGE}.npm"
-
-              select-oci-auth "$IMAGE" > auth.json
-              AUTHFILE="$(realpath auth.json)"
-
-              EXPIRE_LABEL=()
-              [ -n "$IMAGE_EXPIRES_AFTER" ] && EXPIRE_LABEL=("--annotation" "quay.expires-after=$IMAGE_EXPIRES_AFTER")
-
-              if [ "${PACKAGE_STATUS}" = "no-packages" ]; then
-                echo "[export-image-results] pushing empty npm OCI artifact (infra-only PR)"
-                workdir="$(mktemp -d)"
-                touch "${workdir}/.keep"
-                cd "${workdir}"
-                retry oras push "$IMAGE" \
-                  --registry-config "${AUTHFILE}" \
-                  "${EXPIRE_LABEL[@]}" \
-                  --artifact-type "application/vnd.npm.packages" \
-                  .keep
-              elif [ "${PACKAGE_STATUS}" = "has-packages" ]; then
-                echo "[export-image-results] resolving npm OCI artifact from build-npm-package"
-              else
-                echo "unexpected package-status: ${PACKAGE_STATUS}" >&2
-                exit 1
-              fi
-
-              DIGEST="$(retry oras resolve --registry-config "${AUTHFILE}" "$IMAGE")"
-              echo -n "$IMAGE" | tee "$(results.IMAGE_URL.path)"
-              echo -n "$DIGEST" | tee "$(results.IMAGE_DIGEST.path)"
   workspaces:
     - name: git-auth
       optional: true
