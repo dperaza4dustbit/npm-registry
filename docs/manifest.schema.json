@@ -8,7 +8,6 @@
     "version",
     "native_tier",
     "source",
-    "builder",
     "entrypoint",
     "smoke",
     "outputs"
@@ -33,15 +32,6 @@
       "properties": {
         "version": { "type": "string" },
         "integrity": { "type": "string" }
-      },
-      "additionalProperties": true
-    },
-    "builder": {
-      "type": "object",
-      "required": ["image"],
-      "properties": {
-        "image": { "type": "string" },
-        "image_digest_pin": { "type": "string", "pattern": "^sha256:" }
       },
       "additionalProperties": true
     },

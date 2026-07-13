@@ -19,7 +19,7 @@ fi
 
 validate_manifest() {
     local manifest="$1"
-    local pkg_dir name version tier entrypoint smoke digest_pin source_url source_ref
+    local pkg_dir name version tier entrypoint smoke source_url source_ref
 
     echo "[lint-manifest] ${manifest}"
 
@@ -34,7 +34,6 @@ validate_manifest() {
     tier="$(jq -r '.native_tier // empty' "${manifest}")"
     entrypoint="$(jq -r '.entrypoint // empty' "${manifest}")"
     smoke="$(jq -r '.smoke // empty' "${manifest}")"
-    digest_pin="$(jq -r '.builder.image_digest_pin // empty' "${manifest}")"
     source_url="$(jq -r '.source.url // empty' "${manifest}")"
     source_ref="$(jq -r '.source.ref // empty' "${manifest}")"
 
@@ -82,13 +81,6 @@ validate_manifest() {
             echo "Tier B manifests require a tl-platform-package output" >&2
             exit 1
         fi
-    fi
-
-    if [[ -n "${digest_pin}" && -n "${BUILDER_IMAGE_DIGEST:-}" ]]; then
-        [[ "${digest_pin}" == "${BUILDER_IMAGE_DIGEST}" ]] || {
-            echo "builder.image_digest_pin mismatch in ${manifest}" >&2
-            exit 1
-        }
     fi
 }
 

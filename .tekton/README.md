@@ -5,11 +5,13 @@
 `build-pipeline.yaml` defines pipeline **`build-npm`** (Phase 1 — PR build to Quay OCI).
 
 ```text
-init → clone-repository → lint-manifests → identify-packages → build-npm-package (optional) → export-image-results
+init → clone-repository → lint-manifests → identify-packages → build-npm-package
 ```
 
 Built tarballs are pushed as an OCI artifact to
 `$(output-image).npm` (e.g. `.../calunga-npm-registry-main:on-pr-<sha>.npm`, 5d TTL).
+Pipeline `IMAGE_URL` / `IMAGE_DIGEST` come from the trusted **`build-npm-package`**
+task (same pattern as Python `build-wheels`), not an inline pipeline step.
 
 `calunga-npm-registry-main-pull-request.yaml` triggers on PRs to `main`.
 
@@ -25,7 +27,7 @@ Plumbing (`npm-builder`, `task-build-npm-package`) stays UI-managed under `calun
 2. If you previously created `calunga-npm-registry-main` in the UI, remove the duplicate.
 3. **Task bundle digest** — after `task-build-npm-package` is on Quay (UI component), update
    `task-build-npm-package-bundle` in this PipelineRun.
-4. **Builder image** — keep `builder-image` / `builder-image-digest` in sync with Quay `npm-builder`.
+4. **Builder image** — keep `builder-image` in the PipelineRun in sync with Quay `npm-builder`.
 
 ## Viewing OCI artifacts
 
@@ -55,6 +57,5 @@ No ExternalSecret or Vault wiring is required for Phase 1 Quay-only output.
 ## No packages in this PR
 
 With no changes under `packages/`, `identify-packages` returns `no-packages` and
-`build-npm-package` is skipped. `export-image-results` still runs, pushes an empty
-npm OCI artifact to `$(output-image).npm`, and emits `IMAGE_URL` / `IMAGE_DIGEST`
-so Konflux can create a Snapshot and run Enterprise Contract on infra-only PRs.
+`build-npm-package` pushes an empty `.npm` OCI artifact (`.keep` only) and emits
+`IMAGE_URL` / `IMAGE_DIGEST` for Snapshot / EC.

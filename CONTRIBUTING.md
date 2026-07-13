@@ -19,8 +19,10 @@ packages/<name>/<version>/
 1. **Build from git source** at `source.ref` — never repack from registry.npmjs.org.
 2. **`build.entrypoint.sh` must not publish** — no `npm publish`, cosign keys, or registry tokens.
 3. **One manifest → one factory run → all `outputs[]`** tarballs (Tier B: main + platform).
-4. Set `builder.image_digest_pin` to the deployed `npm-builder` digest (see `.tekton` PipelineRun).
-5. Do **not** author `compliance_level` / `closure_gaps` — CI computes those later.
+4. Do **not** author `compliance_level` / `closure_gaps` — CI computes those later.
+
+Factory image version is pinned in `.tekton/calunga-npm-registry-main-pull-request.yaml`
+(`builder-image`), not in per-package manifests. Provenance records the digest used at build time.
 
 ## Local checks
 
